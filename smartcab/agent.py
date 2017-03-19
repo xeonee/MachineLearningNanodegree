@@ -23,8 +23,7 @@ class LearningAgent(Agent):
         ## TO DO ##
         ###########
         # Set any additional class parameters as needed
-        self.counter = 0
-
+        
     def reset(self, destination=None, testing=False):
         """ The reset function is called at the beginning of each trial.
             'testing' is set to True if testing trials are being used
@@ -40,7 +39,7 @@ class LearningAgent(Agent):
         # Update additional class parameters as needed
         # If 'testing' is True, set epsilon and alpha to 0
         
-        self.epsilon -= 0.001
+        self.epsilon -= 0.00005
         
         if testing == True:
             self.epsilon = 0
@@ -77,11 +76,8 @@ class LearningAgent(Agent):
         # Calculate the maximum Q-value of all actions for a given state
 
         maxQ = None
-        for action in self.valid_actions:
-            cur_value = self.getQValue(state, action)
-            if maxQ is None or cur_value > maxQ:
-                maxQ = cur_value
-        
+                
+        maxQ = max(self.Q[state].values())
         return maxQ 
 
 
@@ -119,11 +115,8 @@ class LearningAgent(Agent):
         # When not learning, choose a random action
         # When learning, choose a random action with 'epsilon' probability
         #   Otherwise, choose an action with the highest Q-value for the current state
-        # print state
-        # print self.get_maxQ(state)
-        # print self.valid_actions
         
-        bestQValue = - 99999999999
+        res = []
         
         if self.learning==False:
             bestAction = random.choice(self.valid_actions)
@@ -132,14 +125,13 @@ class LearningAgent(Agent):
             if (random.random() < self.epsilon):
                 bestAction = random.choice(self.valid_actions)
             else:
+                bestValue = self.get_maxQ(state)    
                 for action in self.valid_actions:
-                    if(self.getQValue(state, action) > bestQValue):
-                        bestQValue = self.getQValue(state, action)
-                        bestAction = action
-
-            
+                    if(round(self.Q[state][action],5) == round(bestValue,5)):
+                        res.append(action)
+                bestAction = random.choice(res)
+                        
         return bestAction
-
 
     def learn(self, state, action, reward):
         """ The learn function is called after the agent completes an action and
@@ -152,22 +144,9 @@ class LearningAgent(Agent):
         # When learning, implement the value iteration update rule
         #   Use only the learning rate 'alpha' (do not use the discount factor 'gamma')
         if self.learning:
-            self.Q[state][action] = self.Q[state][action] + self.alpha*(reward + self.get_maxQ(state) - self.Q[state][action])
+            self.Q[state][action] = self.Q[state][action] + self.alpha*(reward - self.Q[state][action])
             
         return
-
-    def getQValue(self, state, action):
-        """
-        input: (state,action)
-        output: Q value for the (state,action)
-        returns 0 if the value is not present in the dictionary.
-        """
-        ##return the value from the qDict, default to 0 if the key isnt in the dict
-        return self.Q.get((state, action), 0.0)  
-    
-    # def q_key_for(self, state, action):
-    #     return "{}|{}|{}|{}|{}".format(state[0], state[3], state[1], state[2], action)
-        # state = (inputs["light"],inputs["oncoming"],inputs["left"],waypoint)
 
     def update(self):
         """ The update function is called when a time step is completed in the 
@@ -201,7 +180,7 @@ def run():
     #   learning   - set to True to force the driving agent to use Q-learning
     #    * epsilon - continuous value for the exploration factor, default is 1
     #    * alpha   - continuous value for the learning rate, default is 0.5
-    agent = env.create_agent(LearningAgent, learning=True)
+    agent = env.create_agent(LearningAgent, learning=False)
     
     ##############
     # Follow the driving agent
@@ -216,14 +195,14 @@ def run():
     #   display      - set to False to disable the GUI if PyGame is enabled
     #   log_metrics  - set to True to log trial and simulation results to /logs
     #   optimized    - set to True to change the default log file name
-    sim = Simulator(env, update_delay=0.01, log_metrics=True, optimized=True)
+    sim = Simulator(env, update_delay=0.01, log_metrics=True, optimized=True, display=False)
     
     ##############
     # Run the simulator
     # Flags:
     #   tolerance  - epsilon tolerance before beginning testing, default is 0.05 
     #   n_test     - discrete number of testing trials to perform, default is 0
-    sim.run(n_test=10)
+    sim.run(n_test=20)
 
 
 if __name__ == '__main__':
